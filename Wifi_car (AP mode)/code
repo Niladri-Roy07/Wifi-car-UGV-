@@ -1,0 +1,63 @@
+#include <WiFi.h>
+#include <WebServer.h>
+// Motor control pins
+#define ENA 12
+#define ENB 13
+#define IN1 25
+#define IN2 26
+#define IN3 27
+#define IN4 14
+
+int speedCar = 800;
+const char* ssid = "ESP32_Car";
+WebServer server(80);
+void setup() {
+  Serial.begin(115200);
+  pinMode(ENA, OUTPUT);
+  pinMode(ENB, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+
+  WiFi.softAP(ssid);
+  Serial.println("WiFi Car started. Connect to:");
+  Serial.println(WiFi.softAPIP());
+
+  server.on("/", HTTP_root);
+  server.on("/F", goForward);
+  server.on("/B", goBackward);
+  server.on("/L", goLeft);
+  server.on("/R", goRight);
+  server.on("/S", stopCar);
+  server.begin();
+}
+
+void loop() {
+  server.handleClient();
+}
+
+void setMotor(bool a1, bool a2, bool b1, bool b2) {
+  digitalWrite(IN1, a1);
+  digitalWrite(IN2, a2);
+  digitalWrite(IN3, b1);
+  digitalWrite(IN4, b2);
+  analogWrite(ENA, speedCar);
+  analogWrite(ENB, speedCar);
+}
+
+void goForward()  { setMotor(0, 1, 0, 1); server.send(200, "text/html", "Moving Forward"); }
+void goBackward() { setMotor(1, 0, 1, 0); server.send(200, "text/html", "Moving Backward"); }
+void goLeft()     { setMotor(0, 1, 1, 0); server.send(200, "text/html", "Turning Left"); }
+void goRight()    { setMotor(1, 0, 0, 1); server.send(200, "text/html", "Turning Right"); }
+void stopCar()    { setMotor(0, 0, 0, 0); server.send(200, "text/html", "Stopped"); }
+
+void HTTP_root() {
+  server.send(200, "text/html",
+    "<h1>ESP32 WiFi Car</h1>"
+    "<button onclick=\"location.href='/F'\">Forward</button><br>"
+    "<button onclick=\"location.href='/L'\">Left</button>"
+    "<button onclick=\"location.href='/S'\">Stop</button>"
+    "<button onclick=\"location.href='/R'\">Right</button><br>"
+    "<button onclick=\"location.href='/B'\">Backward</button>");
+}
